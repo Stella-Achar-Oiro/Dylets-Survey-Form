@@ -26,24 +26,23 @@ func formHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse form data
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
-		log.Println("Error parsing form data:", err)
-		return
-	}
-
 	// Process form data
-	formData := FormData{
-		Name:        r.Form.Get("name"),
-		Email:       r.Form.Get("email"),
-		Age:         parseAge(r.Form.Get("age")),
-		Role:        r.Form.Get("role"),
-		Recommend:   r.Form.Get("recommend"),
-		Improvements: r.Form["improvements"],
-		Comments:    r.Form.Get("comments"),
-	}
+age, err := parseAge(r.Form.Get("age"))
+if err != nil {
+    http.Error(w, "Failed to parse age", http.StatusBadRequest)
+    log.Println("Error parsing age:", err)
+    return
+}
+formData := FormData{
+    Name:         r.Form.Get("name"),
+    Email:        r.Form.Get("email"),
+    Age:          age,
+    Role:         r.Form.Get("role"),
+    Recommend:    r.Form.Get("recommend"),
+    Improvements: r.Form["improvements"],
+    Comments:     r.Form.Get("comments"),
+}
+
 
 	// Convert form data to JSON
 	response, err := json.Marshal(formData)
