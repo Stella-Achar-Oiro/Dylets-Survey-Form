@@ -2,12 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
-    "strings"
-	"errors"
+	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 type FormData struct {
@@ -27,22 +28,21 @@ func formHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Process form data
-age, err := parseAge(r.Form.Get("age"))
-if err != nil {
-    http.Error(w, "Failed to parse age", http.StatusBadRequest)
-    log.Println("Error parsing age:", err)
-    return
-}
-formData := FormData{
-    Name:         r.Form.Get("name"),
-    Email:        r.Form.Get("email"),
-    Age:          age,
-    Role:         r.Form.Get("role"),
-    Recommend:    r.Form.Get("recommend"),
-    Improvements: r.Form["improvements"],
-    Comments:     r.Form.Get("comments"),
-}
-
+	age, err := parseAge(r.Form.Get("age"))
+	if err != nil {
+		http.Error(w, "Failed to parse age", http.StatusBadRequest)
+		log.Println("Error parsing age:", err)
+		return
+	}
+	formData := FormData{
+		Name:         r.Form.Get("name"),
+		Email:        r.Form.Get("email"),
+		Age:          age,
+		Role:         r.Form.Get("role"),
+		Recommend:    r.Form.Get("recommend"),
+		Improvements: r.Form["improvements"],
+		Comments:     r.Form.Get("comments"),
+	}
 
 	// Convert form data to JSON
 	response, err := json.Marshal(formData)
@@ -58,34 +58,28 @@ formData := FormData{
 }
 
 func parseAge(ageStr string) (int, error) {
-    // Check if ageStr is empty
-    if ageStr == "" {
-        // If empty, return an error
-        return 0, errors.New("age is empty")
-    }
+	// Check if ageStr is empty
+	if ageStr == "" {
+		// If empty, return an error
+		return 0, errors.New("age is empty")
+	}
 
-    // Attempt to parse ageStr to an integer
-    age, err := strconv.Atoi(strings.TrimSpace(ageStr))
-    if err != nil {
-        // If parsing fails, return an error
-        return 0, errors.New("failed to parse age")
-    }
+	// Attempt to parse ageStr to an integer
+	age, err := strconv.Atoi(strings.TrimSpace(ageStr))
+	if err != nil {
+		// If parsing fails, return an error
+		return 0, errors.New("failed to parse age")
+	}
 
-    // Check if age is within a valid range (1 to 120, as specified in the HTML form)
-    if age < 1 || age > 120 {
-        // If not within range, return an error
-        return 0, errors.New("age is out of range")
-    }
+	// Additional age validation can be added here if needed
 
-    // Return the parsed age
-    return age, nil
+	return age, nil
 }
 
 func main() {
-	// Define routes
-	http.HandleFunc("/submit", formHandler)
+	r := mux.NewRouter()
+	r.HandleFunc("/submit", formHandler).Methods(http.MethodPost)
 
-	// Start server
-	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	http.Handle("/", r)
+	http.ListenAndServe(":8080", nil)
 }
