@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"fmt"
 
 	"github.com/gorilla/mux"
 )
@@ -79,6 +80,10 @@ func parseAge(ageStr string) (int, error) {
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/submit", formHandler).Methods(http.MethodPost)
+
+	// Start server
+	fmt.Println("Server is running on port 8080...")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", nil)
