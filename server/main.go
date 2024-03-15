@@ -2,89 +2,70 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
+	"html/template"
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
-	"fmt"
 
 	"github.com/gorilla/mux"
 )
 
 type FormData struct {
-	Name        string   `json:"name"`
-	Email       string   `json:"email"`
-	Age         int      `json:"age"`
-	Role        string   `json:"role"`
-	Recommend   string   `json:"recommend"`
-	Improvements []string `json:"improvements"`
-	Comments    string   `json:"comments"`
-}
-
-func formHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Process form data
-	age, err := parseAge(r.Form.Get("age"))
-	if err != nil {
-		http.Error(w, "Failed to parse age", http.StatusBadRequest)
-		log.Println("Error parsing age:", err)
-		return
-	}
-	formData := FormData{
-		Name:         r.Form.Get("name"),
-		Email:        r.Form.Get("email"),
-		Age:          age,
-		Role:         r.Form.Get("role"),
-		Recommend:    r.Form.Get("recommend"),
-		Improvements: r.Form["improvements"],
-		Comments:     r.Form.Get("comments"),
-	}
-
-	// Convert form data to JSON
-	response, err := json.Marshal(formData)
-	if err != nil {
-		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
-		log.Println("Error encoding JSON response:", err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(response)
-}
-
-func parseAge(ageStr string) (int, error) {
-	// Check if ageStr is empty
-	if ageStr == "" {
-		// If empty, return an error
-		return 0, errors.New("age is empty")
-	}
-
-	// Attempt to parse ageStr to an integer
-	age, err := strconv.Atoi(strings.TrimSpace(ageStr))
-	if err != nil {
-		// If parsing fails, return an error
-		return 0, errors.New("failed to parse age")
-	}
-
-	// Additional age validation can be added here if needed
-
-	return age, nil
+	Name           string
+	Email          string
+	Age            string
+	Role           string
+	Recommendation string
+	Improvements   []string
+	Comments       string
 }
 
 func main() {
 	r := mux.NewRouter()
-	r.HandleFunc("/submit", formHandler).Methods(http.MethodPost)
 
-	// Start server
-	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	r.HandleFunc("/", surveyFormHandler).Methods("GET")
+	r.HandleFunc("/submit", formSubmitHandler).Methods("POST")
 
-	http.Handle("/", r)
-	http.ListenAndServe(":8080", nil)
+	log.Println("Server started on http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", r))
+}
+
+func surveyFormHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("/workspaces/Dylets-Survey-Form/client/index.html"))
+
+	err := tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func formSubmitHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	formData := FormData{
+		Name:           r.FormValue("name"),
+		Email:          r.FormValue("email"),
+		Age:            r.FormValue("age"),
+		Role:           r.FormValue("role"),
+		Recommendation: r.FormValue("recommendation"),
+		Improvements:   r.Form["improvements"],
+		Comments:       r.FormValue("comments"),
+	}
+
+	// Convert the formData struct to JSON
+	jsonData, err := json.Marshal(formData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set the response content type to application/json
+	w.Header().Set("Content-Type", "application/json")
+
+	// Write the JSON data as the response
+	w.Write(jsonData)
 }
