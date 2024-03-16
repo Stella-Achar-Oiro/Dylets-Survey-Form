@@ -25,7 +25,7 @@ func main() {
 	r.HandleFunc("/", surveyFormHandler).Methods("GET")
 	r.HandleFunc("/submit", formSubmitHandler).Methods("POST")
 
-    r.PathPrefix("/client/").Handler(http.StripPrefix("/client/", http.FileServer(http.Dir("/workspaces/Dylets-Survey-Form/client"))))
+	r.PathPrefix("/client/").Handler(http.StripPrefix("/client/", http.FileServer(http.Dir("/workspaces/Dylets-Survey-Form/client"))))
 
 	log.Println("Server started on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
